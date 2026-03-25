@@ -10,6 +10,9 @@ import pyarrow.fs as fs
 import os, subprocess
 import requests
 from collections import defaultdict
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def calc_avg_loan(county_code: str) -> dict:
     county = int(float(county_code))
@@ -21,10 +24,13 @@ def calc_avg_loan(county_code: str) -> dict:
     try:
         table = pq.read_table(partition_path, filesystem=hdfs)
         source = "reuse"
+        logging.info(f"Cache hit for county {county}. Reusing existing partition.")
     except FileNotFoundError:
         source = "create"
-    except OSError:
+        logging.info(f"Cache miss for county {county}. Creating new partition.")
+    except OSError as e:
         source = "recreate"
+        logging.warning(f"Cache for county {county} is corrupted or unavailable (OSError: {e}). Recreating.")
 
     if source in ["create", "recreate"]:
         table = pq.read_table(
