@@ -99,8 +99,46 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
                 error=str(e)
             )
     def CalcAvgLoan(self, request, context):
-        return lender_pb2.CalcAvgLoanResp(error="not implemented")
-
+        county = float(request.county_code)
+        try:
+            hdfs = fs.HadoopFileSystem(host="nn", port=9000, user="hduser")
+            partition_path = f"/partitions/{int(county)}.parquet"
+            try:
+                table = pq.read_table(partition_path, filesystem=hdfs)
+                source = "reuse"
+            except FileNotFoundError:
+                table = pq.read_table(
+                    "/hdma-wi-2021.parquet",
+                    filesystem=hdfs,
+                    filters=[("county_code", "=", county)]
+                )
+                hdfs.create_dir("/partitions")
+                pq.write_table(
+                    table,
+                    f"hdfs://nn:9000{partition_path}",
+                    filesystem=hdfs,
+                    compression="snappy"
+                )
+                source = "create"
+            df = table.to_pandas()
+            if len(df) == 0:
+                return lender_pb2.CalcAvgLoanResp(
+                    avg_loan=0,
+                    source=source,
+                    error=""
+                )
+            avg = int(df["loan_amount"].mean())
+            return lender_pb2.CalcAvgLoanResp(
+                avg_loan=avg,
+                source=source,
+                error=""
+            )
+        except Exception as e:
+            return lender_pb2.CalcAvgLoanResp(
+                avg_loan=0,
+                source="",
+                error=str(e)
+            )
 
 def main():
     print("start server")
