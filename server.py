@@ -13,21 +13,30 @@ from sqlalchemy.exc import OperationalError
 
 class LenderServicer(lender_pb2_grpc.LenderServicer):
     def __init__(self):
-        hdfs_host = os.environ.get("HDFS_HOST", "nn")
-        hdfs_port = int(os.environ.get("HDFS_PORT", "9000"))
-        self.hdfs = fs.HadoopFileSystem(hdfs_host, port=hdfs_port)
-
-        self.mysql_user = os.environ.get("MYSQL_USER", "root")
-        self.mysql_pass = os.environ.get("MYSQL_PASSWORD", "acid")
-        self.mysql_host = os.environ.get("MYSQL_HOST", "p4-mysql-1:3306")
-        self.mysql_db = os.environ.get("MYSQL_DATABASE", "CS544")
-
         os.environ["CLASSPATH"] = subprocess.check_output(
             ["hadoop", "classpath", "--glob"], text=True
         ).strip()
 
+        hdfs_host = os.environ.get("HDFS_HOST", "nn")
+        hdfs_port = int(os.environ.get("HDFS_PORT", "9000"))
+
+        self.hdfs = None
+        for _ in range(10):
+            try:
+                self.hdfs = fs.HadoopFileSystem(hdfs_host, port=hdfs_port)
+                break
+            except OSError as e:
+                print(f"HDFS connection failed: {e}, retrying...")
+                time.sleep(3)
+        if self.hdfs is None:
+            raise RuntimeError("Could not connect to HDFS after multiple retries")
+
+        self.mysql_user = os.environ.get("MYSQL_USER", "root")
+        self.mysql_pass = os.environ.get("MYSQL_PASSWORD", "acid")
+        self.mysql_host = os.environ.get("MYSQL_HOST", "p4-mysql-1")
+        self.mysql_db = os.environ.get("MYSQL_DATABASE", "CS544")
+
     def _connect_mysql(self):
-        """Connect to MySQL with retry loop."""
         engine = None
         for _ in range(10):
             try:
@@ -37,12 +46,12 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
                 conn = engine.connect()
                 conn.close()
                 return engine
-            except OperationalError:
+            except OperationalError as e:
+                print(f"MySQL connection failed: {e}, retrying...")
                 time.sleep(3)
         raise RuntimeError("Could not connect to MySQL after multiple retries")
 
     def DbToHdfs(self, request, context):
-        """Query MySQL and upload full Parquet to HDFS."""
         try:
             engine = self._connect_mysql()
             query = """
@@ -54,7 +63,7 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
             table = pa.Table.from_pandas(df)
 
             parquet_path = os.environ.get("PARQUET_PATH", "/hdma-wi-2021.parquet")
-            block_size = int(os.environ.get("BLOCK_SIZE", 1024*1024)) 
+            block_size = int(os.environ.get("BLOCK_SIZE", 1024*1024))
 
             pq.write_table(
                 table,
@@ -69,7 +78,6 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
             return lender_pb2.DbToHdfsResp(row_count=0, error=str(e))
 
     def BlockLocations(self, request, context):
-        """Return block locations as a dict."""
         path = request.path
         try:
             output = subprocess.check_output(
@@ -85,7 +93,6 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
             return lender_pb2.BlockLocationsResp(block_entries={}, error=str(e))
 
     def CalcAvgLoan(self, request, context):
-        """Compute county average with caching and fault tolerance."""
         county_code = float(request.county_code)
         big_file = os.environ.get("PARQUET_PATH", "/hdma-wi-2021.parquet")
         partition_dir = os.environ.get("PARTITION_DIR", "/partitions")
@@ -100,8 +107,11 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
             source = "reuse"
         except (FileNotFoundError, OSError):
             try:
-                table = pq.read_table(big_file, filesystem=self.hdfs,
-                                      filters=[("county_code", "=", county_code)])
+                table = pq.read_table(
+                    big_file,
+                    filesystem=self.hdfs,
+                    filters=[("county_code", "=", county_code)]
+                )
                 df = table.to_pandas()
                 pq.write_table(table, county_file, filesystem=self.hdfs)
                 if source != "reuse":
