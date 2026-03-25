@@ -7,6 +7,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pyarrow.fs as fs
+import pyarrow.dataset as ds
 import os, subprocess
 import requests
 from collections import defaultdict
@@ -22,22 +23,19 @@ def calc_avg_loan(county_code: str) -> dict:
     table = None
 
     try:
-        table = pq.read_table(partition_path, filesystem=hdfs)
+        table = ds.dataset(partition_path, filesystem=hdfs, format="parquet").to_table()
         source = "reuse"
         logging.info(f"Cache hit for county {county}. Reusing existing partition.")
     except FileNotFoundError:
         source = "create"
         logging.info(f"Cache miss for county {county}. Creating new partition.")
-    except OSError as e:
+    except (OSError, pa.ArrowInvalid) as e:
         source = "recreate"
-        logging.warning(f"Cache for county {county} is corrupted or unavailable (OSError: {e}). Recreating.")
+        logging.warning(f"Cache for county {county} is corrupted or unavailable (Error: {e}). Recreating.")
 
     if source in ["create", "recreate"]:
-        table = pq.read_table(
-            "/hdma-wi-2021.parquet",
-            filesystem=hdfs,
-            filters=[("county_code", "=", county)]
-        )
+        dataset = ds.dataset("/hdma-wi-2021.parquet", filesystem=hdfs, format="parquet")
+        table = dataset.to_table(filter=(ds.field("county_code") == county))
         try:
             hdfs.create_dir("/partitions")
         except pa.ArrowIOError as e:
@@ -45,7 +43,7 @@ def calc_avg_loan(county_code: str) -> dict:
                 raise
         pq.write_table(
             table,
-            f"hdfs://nn:9000{partition_path}",
+            partition_path,
             filesystem=hdfs,
             compression="snappy"
         )
