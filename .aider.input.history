@@ -10,3 +10,146 @@
 
 # 2026-03-24 21:28:14.597466
 +hello
+
+# 2026-03-24 21:54:30.638091
++read lender.proto and summarize the calls
+
+# 2026-03-24 21:54:33.995164
++Y
+
+# 2026-03-24 21:55:05.952498
++read client.py.  What port does it use?
+
+# 2026-03-24 21:55:08.230470
++y
+
+# 2026-03-24 21:55:29.030984
++read https://git.doit.wisc.edu/cdis/cs/courses/cs544/s26/main/-/raw/main/demos/grpc/lec1/server.py.  What does the example code do, and how many threads are there?
+
+# 2026-03-24 21:55:32.817548
++y
+
+# 2026-03-24 21:55:48.654515
++n
+
+# 2026-03-24 21:56:02.762918
++import grpc
++from concurrent import futures
++import math_pb2, math_pb2_grpc
++import traceback
++
++class MyCalc(math_pb2_grpc.CalcServicer):
++    def Mult(self, request, context):
++        try:
++            print(request)
++            print(request.x, request.y)
++            return math_pb2.MultResp(result=request.x * request.y)
++        except Exception:
++            traceback.print_exc()
++
++print("start server")
++server = grpc.server(futures.ThreadPoolExecutor(max_workers=1), options=[("grpc.so_reuseport", 0)])
++math_pb2_grpc.add_CalcServicer_to_server(MyCalc(), server)
++server.add_insecure_port("0.0.0.0:5440")
++server.start()
++server.wait_for_termination()
+
+# 2026-03-24 21:57:30.882386
++n
+
+# 2026-03-24 21:57:51.611443
++how many threads does this use
+
+# 2026-03-24 21:58:01.225770
++import grpc
+
+# 2026-03-24 21:58:10.150948
++from concurrent import futures
+
+# 2026-03-24 21:58:13.801504
++import math_pb2, math_pb2_grpc
+
+# 2026-03-24 21:58:16.263319
++import traceback
+
+# 2026-03-24 21:58:23.220491
++class MyCalc(math_pb2_grpc.CalcServicer):
+
+# 2026-03-24 21:58:26.565720
++    def Mult(self, request, context):
+
+# 2026-03-24 21:58:42.709700
++        try:
+
+# 2026-03-24 21:59:12.347469
++            print(request)
+
+# 2026-03-24 21:59:13.881331
++            print(request.x, request.y)
+
+# 2026-03-24 21:59:17.072947
++            return math_pb2.MultResp(result=request.x * request.y)
+
+# 2026-03-24 21:59:48.514903
++read lender.proto and summarize the calls
+
+# 2026-03-24 21:59:50.252469
++y
+
+# 2026-03-24 22:00:10.073378
++read client.py.  What port does it use?
+
+# 2026-03-24 22:00:12.300109
++y
+
+# 2026-03-24 22:00:30.995151
++read
+
+# 2026-03-24 22:01:08.486838
++What does the example code do, and how many threads are there? import grpc
++from concurrent import futures
++import math_pb2, math_pb2_grpc
++import traceback
++
++class MyCalc(math_pb2_grpc.CalcServicer):
++    def Mult(self, request, context):
++        try:
++            print(request)
++            print(request.x, request.y)
++            return math_pb2.MultResp(result=request.x * request.y)
++        except Exception:
++            traceback.print_exc()
++
++print("start server")
++server = grpc.server(futures.ThreadPoolExecutor(max_workers=1), options=[("grpc.so_reuseport", 0)])
++math_pb2_grpc.add_CalcServicer_to_server(MyCalc(), server)
++server.add_insecure_port("0.0.0.0:5440")
++server.start()
++server.wait_for_termination()
+
+# 2026-03-24 22:01:29.900561
++Write a server.py here, like the example, but implementing
++lender.proto.  Just create the methods, not code bodies yet.  For now,
++just return "not implemented" in error fields when possible.
++client.py will use the server you write.  We should have 8 threads.
+
+# 2026-03-24 22:01:55.284112
++Y
+
+# 2026-03-24 22:02:01.688651
++/run python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. lender.proto
+
+# 2026-03-24 22:02:01.688684
++/run python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. lender.proto
+
+# 2026-03-24 22:02:07.824506
++Y
+
+# 2026-03-24 22:13:54.714506
++read Dockerfile.server
+
+# 2026-03-24 22:13:56.689565
++y
+
+# 2026-03-24 22:14:21.319678
++Update Dockerfile.server to support connecting to MySQL using SQLAlchemy by adding the required Python dependencies. Install sqlalchemy and pymysql using pip, keep the existing base image and structure unchanged, and do not remove or modify any existing dependencies. If there is already a pip install command, add these packages to it instead of creating a new one; otherwise, add a minimal new install line. Make only the smallest necessary changes.
