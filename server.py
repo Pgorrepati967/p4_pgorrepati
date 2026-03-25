@@ -99,10 +99,10 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
                 error=str(e)
             )
     def CalcAvgLoan(self, request, context):
-        county = float(request.county_code)
         try:
+            county = int(float(request.county_code))
             hdfs = fs.HadoopFileSystem(host="nn", port=9000, user="hduser")
-            partition_path = f"/partitions/{int(county)}.parquet"
+            partition_path = f"/partitions/{county}.parquet"
             try:
                 table = pq.read_table(partition_path, filesystem=hdfs)
                 source = "reuse"
@@ -112,7 +112,11 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
                     filesystem=hdfs,
                     filters=[("county_code", "=", county)]
                 )
-                hdfs.create_dir("/partitions")
+                try:
+                    hdfs.create_dir("/partitions")
+                except pa.ArrowIOError as e:
+                    if "File exists" not in str(e):
+                        raise
                 pq.write_table(
                     table,
                     f"hdfs://nn:9000{partition_path}",
