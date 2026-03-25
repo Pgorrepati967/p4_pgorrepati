@@ -11,6 +11,48 @@ import os, subprocess
 import requests
 from collections import defaultdict
 
+def calc_avg_loan(county_code: str) -> dict:
+    county = int(float(county_code))
+    hdfs = fs.HadoopFileSystem(host="nn", port=9000, user="hduser")
+    partition_path = f"/partitions/{county}.parquet"
+    source = ""
+    table = None
+
+    try:
+        table = pq.read_table(partition_path, filesystem=hdfs)
+        source = "reuse"
+    except FileNotFoundError:
+        source = "create"
+    except OSError:
+        source = "recreate"
+
+    if source in ["create", "recreate"]:
+        table = pq.read_table(
+            "/hdma-wi-2021.parquet",
+            filesystem=hdfs,
+            filters=[("county_code", "=", county)]
+        )
+        try:
+            hdfs.create_dir("/partitions")
+        except pa.ArrowIOError as e:
+            if "File exists" not in str(e):
+                raise
+        pq.write_table(
+            table,
+            f"hdfs://nn:9000{partition_path}",
+            filesystem=hdfs,
+            compression="snappy"
+        )
+
+    df = table.to_pandas()
+    if len(df) == 0:
+        avg = 0
+    else:
+        avg = int(df["loan_amount"].mean())
+
+    return {"avg": avg, "source": source}
+
+
 class LenderServicer(lender_pb2_grpc.LenderServicer):
 
     def DbToHdfs(self, request, context):
@@ -100,41 +142,10 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
             )
     def CalcAvgLoan(self, request, context):
         try:
-            county = int(float(request.county_code))
-            hdfs = fs.HadoopFileSystem(host="nn", port=9000, user="hduser")
-            partition_path = f"/partitions/{county}.parquet"
-            try:
-                table = pq.read_table(partition_path, filesystem=hdfs)
-                source = "reuse"
-            except FileNotFoundError:
-                table = pq.read_table(
-                    "/hdma-wi-2021.parquet",
-                    filesystem=hdfs,
-                    filters=[("county_code", "=", county)]
-                )
-                try:
-                    hdfs.create_dir("/partitions")
-                except pa.ArrowIOError as e:
-                    if "File exists" not in str(e):
-                        raise
-                pq.write_table(
-                    table,
-                    f"hdfs://nn:9000{partition_path}",
-                    filesystem=hdfs,
-                    compression="snappy"
-                )
-                source = "create"
-            df = table.to_pandas()
-            if len(df) == 0:
-                return lender_pb2.CalcAvgLoanResp(
-                    avg_loan=0,
-                    source=source,
-                    error=""
-                )
-            avg = int(df["loan_amount"].mean())
+            result = calc_avg_loan(request.county_code)
             return lender_pb2.CalcAvgLoanResp(
-                avg_loan=avg,
-                source=source,
+                avg_loan=result["avg"],
+                source=result["source"],
                 error=""
             )
         except Exception as e:
