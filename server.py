@@ -76,7 +76,7 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
             return lender_pb2.DbToHdfsResp(row_count=0, error="Could not connect to MySQL after retries")
 
         try:
-            query = "SELECT * FROM loans WHERE loan_type='Conventional'"
+            query = "SELECT * FROM loans WHERE derived_loan_product_type LIKE 'Conventional:%'"
             df = pd.read_sql(query, engine)
 
             hdfs = get_hdfs()
