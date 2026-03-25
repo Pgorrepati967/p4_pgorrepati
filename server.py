@@ -8,7 +8,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pyarrow.fs as fs
 import os, subprocess
-
+import requests
+from collections import defaultdict
 
 class LenderServicer(lender_pb2_grpc.LenderServicer):
 
@@ -72,8 +73,31 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
             )
 
     def BlockLocations(self, request, context):
-        return lender_pb2.BlockLocationsResp(error="not implemented")
+        path = request.path
 
+        try:
+            url = f"http://nn:9870/webhdfs/v1{path}?op=GETFILEBLOCKLOCATIONS"
+            resp = requests.get(url)
+            resp.raise_for_status()
+            data = resp.json()
+
+            counts = defaultdict(int)
+            blocks = data.get("BlockLocations", {}).get("BlockLocation", [])
+
+            for block in blocks:
+                for host in block.get("hosts", []):
+                    counts[host] += 1
+
+            return lender_pb2.BlockLocationsResp(
+                block_entries=dict(counts),
+                error=""
+            )
+
+        except Exception as e:
+            return lender_pb2.BlockLocationsResp(
+                block_entries={},
+                error=str(e)
+            )
     def CalcAvgLoan(self, request, context):
         return lender_pb2.CalcAvgLoanResp(error="not implemented")
 
