@@ -33,7 +33,7 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
 
         self.mysql_user = os.environ.get("MYSQL_USER", "root")
         self.mysql_pass = os.environ.get("MYSQL_PASSWORD", "acid")
-        self.mysql_host = os.environ.get("MYSQL_HOST","p4-mysql-1")
+        self.mysql_host = os.environ.get("MYSQL_HOST","mysql")
         self.mysql_db = os.environ.get("MYSQL_DATABASE", "CS544")
 
     def _connect_mysql(self):
