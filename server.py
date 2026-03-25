@@ -14,136 +14,111 @@ from collections import defaultdict
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
+def get_hdfs():
+    os.environ["CLASSPATH"] = subprocess.check_output(
+        ["hadoop", "classpath", "--glob"], text=True
+    ).strip()
+    return fs.HadoopFileSystem(host="nn", port=9000, user="hduser")
 def calc_avg_loan(county_code: str) -> dict:
-    county = int(float(county_code))
-    hdfs = fs.HadoopFileSystem(host="nn", port=9000, user="hduser")
-    partition_path = f"/partitions/{county}.parquet"
-    source = ""
+    county = float(county_code)
+    hdfs = get_hdfs()
+    partition_dir = "/partitions"
+    partition_path = f"{partition_dir}/{int(county)}.parquet"
+    try:
+        hdfs.create_dir(partition_dir)
+    except pa.ArrowIOError as e:
+        if "File exists" not in str(e):
+            raise
     table = None
-
+    source = ""
     try:
         table = ds.dataset(partition_path, filesystem=hdfs, format="parquet").to_table()
         source = "reuse"
-        logging.info(f"Cache hit for county {county}. Reusing existing partition.")
+        logging.info(f"Cache hit for county {int(county)}")
     except FileNotFoundError:
         source = "create"
-        logging.info(f"Cache miss for county {county}. Creating new partition.")
+        logging.info(f"Cache miss for county {int(county)}. Creating from full dataset.")
     except (OSError, pa.ArrowInvalid) as e:
         source = "recreate"
-        logging.warning(f"Cache for county {county} is corrupted or unavailable (Error: {e}). Recreating.")
-
+        logging.warning(f"Cache corrupted for county {int(county)}. Recreating. Error: {e}")
     if source in ["create", "recreate"]:
-        dataset = ds.dataset("/hdma-wi-2021.parquet", filesystem=hdfs, format="parquet")
+        dataset = ds.dataset("/hdma/hdma-wi-2021.parquet", filesystem=hdfs, format="parquet")
         table = dataset.to_table(filter=(ds.field("county_code") == county))
-        try:
-            hdfs.create_dir("/partitions")
-        except pa.ArrowIOError as e:
-            if "File exists" not in str(e):
-                raise
-        pq.write_table(
-            table,
-            partition_path,
-            filesystem=hdfs,
-            compression="snappy"
-        )
+        if len(table) > 0:
+            pq.write_table(
+                table,
+                partition_path,
+                filesystem=hdfs,
+                compression="snappy"
+            )
 
-    df = table.to_pandas()
-    if len(df) == 0:
-        avg = 0
-    else:
-        avg = int(df["loan_amount"].mean())
+    df = table.to_pandas() if table else pd.DataFrame()
+    avg = int(df["loan_amount"].mean()) if not df.empty else 0
 
     return {"avg": avg, "source": source}
-
-
 class LenderServicer(lender_pb2_grpc.LenderServicer):
 
     def DbToHdfs(self, request, context):
-        db_url = "mysql+pymysql://root:acid@p4-mysql-1:3306/CS544"
+        db_url = "mysql+pymysql://root:acid@mysql:3306/CS544"
         engine = create_engine(db_url)
-
         start_time = time.time()
         timeout = 30
-
         while time.time() - start_time < timeout:
             try:
                 with engine.connect() as conn:
                     conn.execute(text("SELECT 1"))
-                print("Connected to MySQL")
+                logging.info("Connected to MySQL")
                 break
             except Exception as e:
-                print("MySQL not ready, retrying...", e)
+                logging.info(f"MySQL not ready, retrying... {e}")
                 time.sleep(2)
         else:
-            return lender_pb2.DbToHdfsResp(
-                row_count=0,
-                error="Could not connect to MySQL after retries"
-            )
+            return lender_pb2.DbToHdfsResp(row_count=0, error="Could not connect to MySQL after retries")
 
         try:
-            query = """
-                SELECT * 
-                FROM loans 
-                WHERE loan_type='Conventional'
-            """
-
+            query = "SELECT * FROM loans WHERE loan_type='Conventional'"
             df = pd.read_sql(query, engine)
 
-            os.environ["CLASSPATH"] = subprocess.check_output(
-                ["hadoop", "classpath", "--glob"], text=True
-            ).strip()
-
-            hdfs = fs.HadoopFileSystem(host="nn", port=9000, user="hduser")
+            hdfs = get_hdfs()
+            try:
+                hdfs.create_dir("/hdma")
+            except pa.ArrowIOError as e:
+                if "File exists" not in str(e):
+                    raise
 
             table = pa.Table.from_pandas(df)
-
             pq.write_table(
                 table,
-                "hdfs://nn:9000/hdma-wi-2021.parquet",
+                "/hdma/hdma-wi-2021.parquet",
                 filesystem=hdfs,
                 compression="snappy",
                 use_dictionary=True,
                 row_group_size=1024 * 1024,
             )
 
-            return lender_pb2.DbToHdfsResp(
-                row_count=len(df),
-                error=""
-            )
+            return lender_pb2.DbToHdfsResp(row_count=len(df), error="")
 
         except Exception as e:
-            return lender_pb2.DbToHdfsResp(
-                row_count=0,
-                error=str(e)
-            )
+            return lender_pb2.DbToHdfsResp(row_count=0, error=str(e))
 
     def BlockLocations(self, request, context):
         path = request.path
-
         try:
             url = f"http://nn:9870/webhdfs/v1{path}?op=GETFILEBLOCKLOCATIONS"
-            resp = requests.get(url)
+            resp = requests.get(url, timeout=10)
             resp.raise_for_status()
             data = resp.json()
 
             counts = defaultdict(int)
             blocks = data.get("BlockLocations", {}).get("BlockLocation", [])
-
             for block in blocks:
                 for host in block.get("hosts", []):
                     counts[host] += 1
 
-            return lender_pb2.BlockLocationsResp(
-                block_entries=dict(counts),
-                error=""
-            )
-
+            return lender_pb2.BlockLocationsResp(block_entries=dict(counts), error="")
         except Exception as e:
-            return lender_pb2.BlockLocationsResp(
-                block_entries={},
-                error=str(e)
-            )
+            return lender_pb2.BlockLocationsResp(block_entries={}, error=str(e))
+
     def CalcAvgLoan(self, request, context):
         try:
             result = calc_avg_loan(request.county_code)
@@ -158,9 +133,8 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
                 source="",
                 error=str(e)
             )
-
 def main():
-    print("start server")
+    logging.info("Starting gRPC server on port 5000...")
     server = grpc.server(
         futures.ThreadPoolExecutor(max_workers=8),
         options=[("grpc.so_reuseport", 0)]
@@ -169,7 +143,6 @@ def main():
     server.add_insecure_port("0.0.0.0:5000")
     server.start()
     server.wait_for_termination()
-
 
 if __name__ == "__main__":
     main()

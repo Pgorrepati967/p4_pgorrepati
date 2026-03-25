@@ -1,9 +1,13 @@
 FROM p4-hdfs
+
 RUN pip3 install --break-system-packages \
     grpcio grpcio-tools sqlalchemy pymysql \
     pandas pyarrow requests
+
 COPY lender.proto /
 RUN python3 -m grpc_tools.protoc -I/ --python_out=/ --grpc_python_out=/ /lender.proto
+
 COPY client.py /
 COPY server.py /
+
 CMD ["python3", "/server.py"]
