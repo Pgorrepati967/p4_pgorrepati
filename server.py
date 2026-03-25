@@ -65,6 +65,15 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
             parquet_path = os.environ.get("PARQUET_PATH", "/hdma-wi-2021.parquet")
             block_size = int(os.environ.get("BLOCK_SIZE", 1024*1024))
 
+            parent_dir = os.path.dirname(parquet_path)
+            if parent_dir:
+                try:
+                    info = self.hdfs.get_file_info(parent_dir)
+                    if info.type != fs.FileType.Directory:
+                        return lender_pb2.DbToHdfsResp(row_count=0, error=f"HDFS path {parent_dir} is not a directory")
+                except FileNotFoundError:
+                    return lender_pb2.DbToHdfsResp(row_count=0, error=f"HDFS directory {parent_dir} not found")
+
             pq.write_table(
                 table,
                 parquet_path,
