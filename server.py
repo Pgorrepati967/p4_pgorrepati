@@ -33,7 +33,7 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
 
         self.mysql_user = os.environ.get("MYSQL_USER", "root")
         self.mysql_pass = os.environ.get("MYSQL_PASSWORD", "acid")
-        self.mysql_host = os.environ.get("MYSQL_HOST") or "p4-mysql-1"
+        self.mysql_host = os.environ.get("MYSQL_HOST","p4-mysql-1")
         self.mysql_db = os.environ.get("MYSQL_DATABASE", "CS544")
 
     def _connect_mysql(self):
@@ -41,7 +41,7 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
         for _ in range(10):
             try:
                 engine = create_engine(
-                    f"mysql+pymysql://{self.mysql_user}:{self.mysql_pass}@{self.mysql_host}/{self.mysql_db}"
+                    f"mysql+pymysql://{self.mysql_user}:{self.mysql_pass}@{self.mysql_host}:3306/{self.mysql_db}"
                 )
                 conn = engine.connect()
                 conn.close()
