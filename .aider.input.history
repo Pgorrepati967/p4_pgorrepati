@@ -410,3 +410,16 @@
 
 # 2026-03-25 18:32:48.279067
 +y
+
+# 2026-03-25 22:16:48.271289
++properly implement the BlockLocations gRPC call in server.py
++For a given file path, return a Python dictionary recording how many blocks are stored by each DataNode (key is the DataNode location, value is number of blocks on that node).
++For example, running docker exec -it p4-server-1 python3 /client.py BlockLocations -f /hdma-wi-2021.parquet should show something like this:
++
++{'7eb74ce67e75': 10, 'f7747b42d254': 7, '39750756065d': 11}
++
++
++DataNode location is the randomly generated container ID, so yours will differ, and the block distribution will likely vary.
+
+# 2026-03-25 22:16:50.096793
++y
