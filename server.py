@@ -68,19 +68,12 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
 
     def BlockLocations(self, request, context):
         try:
-            output = subprocess.check_output(
-                ["hdfs", "fsck", request.path, "-files", "-blocks", "-locations"],
-                text=True
-            )
-
+            block_locations = self.hdfs.get_file_block_locations(request.path)
             blocks = {}
-
-            for line in output.splitlines():
-                if "DatanodeInfoWithStorage" in line:
-                    parts = line.split("[")[1:]
-                    for part in parts:
-                        node = part.split(":")[0]
-                        blocks[node] = blocks.get(node, 0) + 1
+            for block in block_locations:
+                for host in block['hosts']:
+                    host_str = host.decode('utf-8')
+                    blocks[host_str] = blocks.get(host_str, 0) + 1
 
             return lender_pb2.BlockLocationsResp(block_entries=blocks, error="")
         except Exception as e:
@@ -91,7 +84,7 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
             subprocess.check_call(["hdfs", "dfs", "-mkdir", "-p", "/partitions"])
         except:
             pass
-        county_code = float(request.county_code)
+        county_code = request.county_code
         big_file = "/hdma-wi-2021.parquet"
         partition_dir = "/partitions"
         county_file = f"{partition_dir}/{int(county_code)}.parquet"
@@ -99,7 +92,12 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
         try:
             df = pq.read_table(county_file, filesystem=self.hdfs).to_pandas()
             source = "reuse"
-        except FileNotFoundError:
+        except (FileNotFoundError, OSError) as e:
+            if isinstance(e, FileNotFoundError):
+                source = "create"
+            else:
+                source = "recreate"
+
             table = pq.read_table(
                 big_file,
                 filesystem=self.hdfs,
@@ -117,29 +115,6 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
                 tmp_local,
                 county_file
             ])
-
-            source = "create"
-
-        except OSError:
-            table = pq.read_table(
-                big_file,
-                filesystem=self.hdfs,
-                filters=[("county_code", "=", county_code)]
-            )
-            df = table.to_pandas()
-
-            tmp_local = f"/tmp/{int(county_code)}.parquet"
-            pq.write_table(table, tmp_local, compression="snappy")
-
-            subprocess.check_call([
-                "hdfs", "dfs",
-                "-D", "dfs.replication=1",
-                "-put", "-f",
-                tmp_local,
-                county_file
-            ])
-
-            source = "recreate"
 
         avg_loan = int(df["loan_amount"].mean())
         return lender_pb2.CalcAvgLoanResp(avg_loan=avg_loan, source=source, error="")
