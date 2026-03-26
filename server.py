@@ -8,6 +8,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pyarrow.fs as fs
+import pyarrow.hdfs
 from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError
 
@@ -69,7 +70,8 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
 
     def BlockLocations(self, request, context):
         try:
-            block_locations = self.hdfs.get_file_block_locations(request.path)
+            hdfs_legacy = pyarrow.hdfs.connect(host="nn", port=9000)
+            block_locations = hdfs_legacy.get_file_block_locations(request.path)
             blocks = {}
             for block in block_locations:
                 for host in block['names']:
