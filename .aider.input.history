@@ -423,3 +423,429 @@
 
 # 2026-03-25 22:16:50.096793
 +y
+
+# 2026-03-26 11:28:05.495854
++help me debug server.py Read client.py lender.proto Dockerfile.server docker-compose.yml and please fix these issues:
+
+# 2026-03-26 11:28:15.235821
++help me debug server.py Read client.py lender.proto Dockerfile.server docker-compose.yml and please fix these issues: autobadger --project p4 --verbose
++[DockerLogManager] Captured logs for container: 6cf796-server-1
++[DockerLogManager] Captured logs for container: 6cf796-mysql-1
++[DockerLogManager] Captured logs for container: 6cf796-nn-1
++[DockerLogManager] Captured logs for container: 6cf796-dn-1
++[DockerLogManager] Captured logs for container: 6cf796-hdfs-1
++test 'test_starter_file_checksums' running...
++Running test_starter_file_checksums...
++test_name='test_starter_file_checksums' Q=1 status=<TestStatus.PASSED: 'PASSED'> score=Score(earned=1, total=1) error=None 
++
++test 'test_server_docker_build' running...
++Running test_server_docker_build (building docker images)...
++checking if given docker images exist...
++p4-hdfs found, skipping build...
++p4-nn found, skipping build...
++p4-dn found, skipping build...
++p4-mysql found, skipping build...
++Building 6cf796-server...
++test_name='test_server_docker_build' Q=2 status=<TestStatus.PASSED: 'PASSED'> score=Score(earned=4, total=4) error=None 
++
++test 'test_compose_run' running...
++Running test_compose_run (starting docker containers)...
++test_name='test_compose_run' Q=3 status=<TestStatus.PASSED: 'PASSED'> score=Score(earned=5, total=5) error=None 
++
++test 'test_DbToHdfs' running...
++Running test_DbToHdfs (this may take a minute or two)...
++Waiting for 20 seconds before calling DbToHdfs...
++waiting for 20 seconds before calling DbToHdfs...
++Pinging mysql server...
++strat trying to ping mysql server...
++ pinging to mysql server failed(1/10) due to exception: b"mysqladmin: [Warning] Using a password on the command line interface can be insecure.\n\x07mysqladmin: connect to server at '127.0.0.1' failed\nerror: 'Can't connect to MySQL server on '127.0.0.1:3306' (111)'\nCheck that mysqld is running on 127.0.0.1 and that the port is 3306.\nYou can check this by doing 'telnet 127.0.0.1 3306'\n", waiting for 10 seconds...
++ pinging to mysql server failed(2/10) due to exception: b"mysqladmin: [Warning] Using a password on the command line interface can be insecure.\n\x07mysqladmin: connect to server at '127.0.0.1' failed\nerror: 'Can't connect to MySQL server on '127.0.0.1:3306' (111)'\nCheck that mysqld is running on 127.0.0.1 and that the port is 3306.\nYou can check this by doing 'telnet 127.0.0.1 3306'\n", waiting for 10 seconds...
++Calling DbToHdfs command...
++trying to call DbToHdfs...
++DbToHdfs done
++test_name='test_DbToHdfs' Q=4 status=<TestStatus.PASSED: 'PASSED'> score=Score(earned=5, total=5) error=None 
++
++test 'test_Hdfs_size' running...
++Running test_Hdfs_size...
++waiting for 10 seconds before checking file size...
++file_size: 13.1, actual_size: 26.2, file_path: hdfs://nn:9000/hdma-wi-2021.parquet
++test_name='test_Hdfs_size' Q=5 status=<TestStatus.PASSED: 'PASSED'> score=Score(earned=10, total=10) error=None 
++
++test 'test_file_rows' running...
++Running test_file_rows...
++test_name='test_file_rows' Q=6 status=<TestStatus.PASSED: 'PASSED'> score=Score(earned=10, total=10) error=None 
++
++test 'test_file_column' running...
++Running test_file_column...
++test_name='test_file_column' Q=7 status=<TestStatus.PASSED: 'PASSED'> score=Score(earned=10, total=10) error=None 
++
++test 'test_BlockLocations' running...
++Running test_BlockLocations...
++test_name='test_BlockLocations' Q=8 status=<TestStatus.FAILED: 'FAILED'> score=Score(earned=0, total=10) error=TestError(message='Expected sum of blocks to be 28 but got 0 blocks', stacktrace=None, earned=0) 
++
++test 'test_CalcAvgLoan_1' running...
++Running test_CalcAvgLoan_1...
++test_name='test_CalcAvgLoan_1' Q=9 status=<TestStatus.PASSED: 'PASSED'> score=Score(earned=15, total=15) error=None 
++
++test 'test_CalcAvgLoan_2' running...
++Running test_CalcAvgLoan_2...
++test_name='test_CalcAvgLoan_2' Q=10 status=<TestStatus.FAILED: 'FAILED'> score=Score(earned=0, total=10) error=TestError(message='Expected value of source is reuse but got create', stacktrace=None, earned=0) 
++
++test 'test_CalcAvgLoan_3' running...
++Running test_CalcAvgLoan_3...
++test_name='test_CalcAvgLoan_3' Q=11 status=<TestStatus.FAILED: 'FAILED'> score=Score(earned=0, total=20) error=TestError(message='Script failed to get the block location of /partitions/55077.parquet due to: b\'Traceback (most recent call last):\\n  File "<string>", line 7, in <module>\\n  File "/usr/local/lib/python3.12/dist-packages/requests/models.py", line 1028, in raise_for_status\\n    raise HTTPError(http_error_msg, response=self)\\nrequests.exceptions.HTTPError: 404 Client Error: Not Found for url: http://nn:9870/webhdfs/v1//partitions/55077.parquet?op=GETFILEBLOCKLOCATIONS\\n\', returncode: 1', stacktrace=None, earned=0) 
++
++[DockerLogManager] Saved logs to: .autobadger/docker-logs/6cf796-server-1.log
++[DockerLogManager] Saved logs to: .autobadger/docker-logs/6cf796-mysql-1.log
++[DockerLogManager] Saved logs to: .autobadger/docker-logs/6cf796-nn-1.log
++[DockerLogManager] Saved logs to: .autobadger/docker-logs/6cf796-dn-1.log
++[DockerLogManager] Saved logs to: .autobadger/docker-logs/6cf796-hdfs-1.log
++[DockerLogManager] Captured logs for container: 6cf796-server-1
++[DockerLogManager] Captured logs for container: 6cf796-mysql-1
++[DockerLogManager] Captured logs for container: 6cf796-nn-1
++[DockerLogManager] Captured logs for container: 6cf796-dn-1
++[DockerLogManager] Captured logs for container: 6cf796-hdfs-1
++{
++  "created": "2026-03-26T11:25:12.698523",
++  "logs": {
++    "6cf796-dn-1": ".autobadger/docker-logs/6cf796-dn-1.log",
++    "6cf796-hdfs-1": ".autobadger/docker-logs/6cf796-hdfs-1.log",
++    "6cf796-mysql-1": ".autobadger/docker-logs/6cf796-mysql-1.log",
++    "6cf796-nn-1": ".autobadger/docker-logs/6cf796-nn-1.log",
++    "6cf796-server-1": ".autobadger/docker-logs/6cf796-server-1.log"
++  },
++  "project": "p4",
++  "score": {
++    "earned": 60,
++    "total": 100
++  },
++  "tests": {
++    "Q1": {
++      "Q": 1,
++      "score": {
++        "earned": 1,
++        "total": 1
++      },
++      "status": "PASSED",
++      "test_name": "test_starter_file_checksums"
++    },
++    "Q10": {
++      "Q": 10,
++      "error": {
++        "message": "Expected value of source is reuse but got create"
++      },
++      "score": {
++        "earned": 0,
++        "total": 10
++      },
++      "status": "FAILED",
++      "test_name": "test_CalcAvgLoan_2"
++    },
++    "Q11": {
++      "Q": 11,
++      "error": {
++        "message": "Script failed to get the block location of /partitions/55077.parquet due to: b'Traceback (most recent call last):\\n  File \"<string>\", line 7, in <module>\\n  File \"/usr/local/lib/python3.12/dist-packages/requests/models.py\", line 1028, in raise_for_status\\n    raise HTTPError(http_error_msg, response=self)\\nrequests.exceptions.HTTPError: 404 Client Error: Not Found for url: http://nn:9870/webhdfs/v1//partitions/55077.parquet?op=GETFILEBLOCKLOCATIONS\\n', returncode: 1"
++      },
++      "score": {
++        "earned": 0,
++        "total": 20
++      },
++      "status": "FAILED",
++      "test_name": "test_CalcAvgLoan_3"
++    },
++    "Q2": {
++      "Q": 2,
++      "score": {
++        "earned": 4,
++        "total": 4
++      },
++      "status": "PASSED",
++      "test_name": "test_server_docker_build"
++    },
++    "Q3": {
++      "Q": 3,
++      "score": {
++        "earned": 5,
++        "total": 5
++      },
++      "status": "PASSED",
++      "test_name": "test_compose_run"
++    },
++    "Q4": {
++      "Q": 4,
++      "score": {
++        "earned": 5,
++        "total": 5
++      },
++      "status": "PASSED",
++      "test_name": "test_DbToHdfs"
++    },
++    "Q5": {
++      "Q": 5,
++      "score": {
++        "earned": 10,
++        "total": 10
++      },
++      "status": "PASSED",
++      "test_name": "test_Hdfs_size"
++    },
++    "Q6": {
++      "Q": 6,
++      "score": {
++        "earned": 10,
++        "total": 10
++      },
++      "status": "PASSED",
++      "test_name": "test_file_rows"
++    },
++    "Q7": {
++      "Q": 7,
++      "score": {
++        "earned": 10,
++        "total": 10
++      },
++      "status": "PASSED",
++      "test_name": "test_file_column"
++    },
++    "Q8": {
++      "Q": 8,
++      "error": {
++        "message": "Expected sum of blocks to be 28 but got 0 blocks"
++      },
++      "score": {
++        "earned": 0,
++        "total": 10
++      },
++      "status": "FAILED",
++      "test_name": "test_BlockLocations"
++    },
++    "Q9": {
++      "Q": 9,
++      "score": {
++        "earned": 15,
++        "total": 15
++      },
++      "status": "PASSED",
++      "test_name": "test_CalcAvgLoan_1"
++    }
++  }
++}
+
+# 2026-03-26 11:28:23.401755
++y
+
+# 2026-03-26 11:29:57.328175
++/run docker-compose up --build -d server
+
+# 2026-03-26 11:29:57.328213
++/run docker-compose up --build -d server
+
+# 2026-03-26 11:30:16.549452
++n
+
+# 2026-03-26 11:30:55.074167
++can you make sure these isuese dont happen debugg them or see what tis causing them: autobadger --project p4 --verbose
++[DockerLogManager] Captured logs for container: 6cf796-server-1
++[DockerLogManager] Captured logs for container: 6cf796-mysql-1
++[DockerLogManager] Captured logs for container: 6cf796-nn-1
++[DockerLogManager] Captured logs for container: 6cf796-dn-1
++[DockerLogManager] Captured logs for container: 6cf796-hdfs-1
++test 'test_starter_file_checksums' running...
++Running test_starter_file_checksums...
++test_name='test_starter_file_checksums' Q=1 status=<TestStatus.PASSED: 'PASSED'> score=Score(earned=1, total=1) error=None 
++
++test 'test_server_docker_build' running...
++Running test_server_docker_build (building docker images)...
++checking if given docker images exist...
++p4-hdfs found, skipping build...
++p4-nn found, skipping build...
++p4-dn found, skipping build...
++p4-mysql found, skipping build...
++Building 6cf796-server...
++test_name='test_server_docker_build' Q=2 status=<TestStatus.PASSED: 'PASSED'> score=Score(earned=4, total=4) error=None 
++
++test 'test_compose_run' running...
++Running test_compose_run (starting docker containers)...
++test_name='test_compose_run' Q=3 status=<TestStatus.PASSED: 'PASSED'> score=Score(earned=5, total=5) error=None 
++
++test 'test_DbToHdfs' running...
++Running test_DbToHdfs (this may take a minute or two)...
++Waiting for 20 seconds before calling DbToHdfs...
++waiting for 20 seconds before calling DbToHdfs...
++Pinging mysql server...
++strat trying to ping mysql server...
++ pinging to mysql server failed(1/10) due to exception: b"mysqladmin: [Warning] Using a password on the command line interface can be insecure.\n\x07mysqladmin: connect to server at '127.0.0.1' failed\nerror: 'Can't connect to MySQL server on '127.0.0.1:3306' (111)'\nCheck that mysqld is running on 127.0.0.1 and that the port is 3306.\nYou can check this by doing 'telnet 127.0.0.1 3306'\n", waiting for 10 seconds...
++ pinging to mysql server failed(2/10) due to exception: b"mysqladmin: [Warning] Using a password on the command line interface can be insecure.\n\x07mysqladmin: connect to server at '127.0.0.1' failed\nerror: 'Can't connect to MySQL server on '127.0.0.1:3306' (111)'\nCheck that mysqld is running on 127.0.0.1 and that the port is 3306.\nYou can check this by doing 'telnet 127.0.0.1 3306'\n", waiting for 10 seconds...
++Calling DbToHdfs command...
++trying to call DbToHdfs...
++DbToHdfs done
++test_name='test_DbToHdfs' Q=4 status=<TestStatus.PASSED: 'PASSED'> score=Score(earned=5, total=5) error=None 
++
++test 'test_Hdfs_size' running...
++Running test_Hdfs_size...
++waiting for 10 seconds before checking file size...
++file_size: 13.1, actual_size: 26.2, file_path: hdfs://nn:9000/hdma-wi-2021.parquet
++test_name='test_Hdfs_size' Q=5 status=<TestStatus.PASSED: 'PASSED'> score=Score(earned=10, total=10) error=None 
++
++test 'test_file_rows' running...
++Running test_file_rows...
++test_name='test_file_rows' Q=6 status=<TestStatus.PASSED: 'PASSED'> score=Score(earned=10, total=10) error=None 
++
++test 'test_file_column' running...
++Running test_file_column...
++test_name='test_file_column' Q=7 status=<TestStatus.PASSED: 'PASSED'> score=Score(earned=10, total=10) error=None 
++
++test 'test_BlockLocations' running...
++Running test_BlockLocations...
++test_name='test_BlockLocations' Q=8 status=<TestStatus.FAILED: 'FAILED'> score=Score(earned=0, total=10) error=TestError(message='Expected sum of blocks to be 28 but got 0 blocks', stacktrace=None, earned=0) 
++
++test 'test_CalcAvgLoan_1' running...
++Running test_CalcAvgLoan_1...
++test_name='test_CalcAvgLoan_1' Q=9 status=<TestStatus.PASSED: 'PASSED'> score=Score(earned=15, total=15) error=None 
++
++test 'test_CalcAvgLoan_2' running...
++Running test_CalcAvgLoan_2...
++test_name='test_CalcAvgLoan_2' Q=10 status=<TestStatus.FAILED: 'FAILED'> score=Score(earned=0, total=10) error=TestError(message='Expected value of source is reuse but got create', stacktrace=None, earned=0) 
++
++test 'test_CalcAvgLoan_3' running...
++Running test_CalcAvgLoan_3...
++test_name='test_CalcAvgLoan_3' Q=11 status=<TestStatus.FAILED: 'FAILED'> score=Score(earned=0, total=20) error=TestError(message='Script failed to get the block location of /partitions/55077.parquet due to: b\'Traceback (most recent call last):\\n  File "<string>", line 7, in <module>\\n  File "/usr/local/lib/python3.12/dist-packages/requests/models.py", line 1028, in raise_for_status\\n    raise HTTPError(http_error_msg, response=self)\\nrequests.exceptions.HTTPError: 404 Client Error: Not Found for url: http://nn:9870/webhdfs/v1//partitions/55077.parquet?op=GETFILEBLOCKLOCATIONS\\n\', returncode: 1', stacktrace=None, earned=0) 
++
++[DockerLogManager] Saved logs to: .autobadger/docker-logs/6cf796-server-1.log
++[DockerLogManager] Saved logs to: .autobadger/docker-logs/6cf796-mysql-1.log
++[DockerLogManager] Saved logs to: .autobadger/docker-logs/6cf796-nn-1.log
++[DockerLogManager] Saved logs to: .autobadger/docker-logs/6cf796-dn-1.log
++[DockerLogManager] Saved logs to: .autobadger/docker-logs/6cf796-hdfs-1.log
++[DockerLogManager] Captured logs for container: 6cf796-server-1
++[DockerLogManager] Captured logs for container: 6cf796-mysql-1
++[DockerLogManager] Captured logs for container: 6cf796-nn-1
++[DockerLogManager] Captured logs for container: 6cf796-dn-1
++[DockerLogManager] Captured logs for container: 6cf796-hdfs-1
++{
++  "created": "2026-03-26T11:25:12.698523",
++  "logs": {
++    "6cf796-dn-1": ".autobadger/docker-logs/6cf796-dn-1.log",
++    "6cf796-hdfs-1": ".autobadger/docker-logs/6cf796-hdfs-1.log",
++    "6cf796-mysql-1": ".autobadger/docker-logs/6cf796-mysql-1.log",
++    "6cf796-nn-1": ".autobadger/docker-logs/6cf796-nn-1.log",
++    "6cf796-server-1": ".autobadger/docker-logs/6cf796-server-1.log"
++  },
++  "project": "p4",
++  "score": {
++    "earned": 60,
++    "total": 100
++  },
++  "tests": {
++    "Q1": {
++      "Q": 1,
++      "score": {
++        "earned": 1,
++        "total": 1
++      },
++      "status": "PASSED",
++      "test_name": "test_starter_file_checksums"
++    },
++    "Q10": {
++      "Q": 10,
++      "error": {
++        "message": "Expected value of source is reuse but got create"
++      },
++      "score": {
++        "earned": 0,
++        "total": 10
++      },
++      "status": "FAILED",
++      "test_name": "test_CalcAvgLoan_2"
++    },
++    "Q11": {
++      "Q": 11,
++      "error": {
++        "message": "Script failed to get the block location of /partitions/55077.parquet due to: b'Traceback (most recent call last):\\n  File \"<string>\", line 7, in <module>\\n  File \"/usr/local/lib/python3.12/dist-packages/requests/models.py\", line 1028, in raise_for_status\\n    raise HTTPError(http_error_msg, response=self)\\nrequests.exceptions.HTTPError: 404 Client Error: Not Found for url: http://nn:9870/webhdfs/v1//partitions/55077.parquet?op=GETFILEBLOCKLOCATIONS\\n', returncode: 1"
++      },
++      "score": {
++        "earned": 0,
++        "total": 20
++      },
++      "status": "FAILED",
++      "test_name": "test_CalcAvgLoan_3"
++    },
++    "Q2": {
++      "Q": 2,
++      "score": {
++        "earned": 4,
++        "total": 4
++      },
++      "status": "PASSED",
++      "test_name": "test_server_docker_build"
++    },
++    "Q3": {
++      "Q": 3,
++      "score": {
++        "earned": 5,
++        "total": 5
++      },
++      "status": "PASSED",
++      "test_name": "test_compose_run"
++    },
++    "Q4": {
++      "Q": 4,
++      "score": {
++        "earned": 5,
++        "total": 5
++      },
++      "status": "PASSED",
++      "test_name": "test_DbToHdfs"
++    },
++    "Q5": {
++      "Q": 5,
++      "score": {
++        "earned": 10,
++        "total": 10
++      },
++      "status": "PASSED",
++      "test_name": "test_Hdfs_size"
++    },
++    "Q6": {
++      "Q": 6,
++      "score": {
++        "earned": 10,
++        "total": 10
++      },
++      "status": "PASSED",
++      "test_name": "test_file_rows"
++    },
++    "Q7": {
++      "Q": 7,
++      "score": {
++        "earned": 10,
++        "total": 10
++      },
++      "status": "PASSED",
++      "test_name": "test_file_column"
++    },
++    "Q8": {
++      "Q": 8,
++      "error": {
++        "message": "Expected sum of blocks to be 28 but got 0 blocks"
++      },
++      "score": {
++        "earned": 0,
++        "total": 10
++      },
++      "status": "FAILED",
++      "test_name": "test_BlockLocations"
++    },
++    "Q9": {
++      "Q": 9,
++      "score": {
++        "earned": 15,
++        "total": 15
++      },
++      "status": "PASSED",
++      "test_name": "test_CalcAvgLoan_1"
++    }
++  }
++}
+
+# 2026-03-26 11:31:00.961265
++n

@@ -60,7 +60,8 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
 
             path = "/hdma-wi-2021.parquet"
 
-            pq.write_table(table, path, filesystem=self.hdfs, compression="snappy")
+            with self.hdfs.open_output_stream(path) as stream:
+                pq.write_table(table, stream, compression="snappy")
 
             return lender_pb2.DbToHdfsResp(row_count=df.shape[0], error="")
         except Exception as e:
@@ -84,7 +85,7 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
             subprocess.check_call(["hdfs", "dfs", "-mkdir", "-p", "/partitions"])
         except:
             pass
-        county_code = request.county_code
+        county_code = float(request.county_code)
         big_file = "/hdma-wi-2021.parquet"
         partition_dir = "/partitions"
         county_file = f"{partition_dir}/{int(county_code)}.parquet"
@@ -109,9 +110,11 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
             with hdfs_rep1.open_output_stream(county_file) as stream:
                 pq.write_table(table, stream, compression="snappy")
 
-        avg_loan = int(df["loan_amount"].mean())
+        if df.empty or df["loan_amount"].isnull().all():
+            avg_loan = 0
+        else:
+            avg_loan = int(df["loan_amount"].mean())
         return lender_pb2.CalcAvgLoanResp(avg_loan=avg_loan, source=source, error="")
-
 
 def main():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=8))
