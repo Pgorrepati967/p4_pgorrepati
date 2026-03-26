@@ -10,6 +10,7 @@ import pyarrow.parquet as pq
 import pyarrow.fs as fs
 from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError
+from collections import defaultdict
 
 class LenderServicer(lender_pb2_grpc.LenderServicer):
     def __init__(self):
@@ -86,20 +87,36 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
             return lender_pb2.DbToHdfsResp(row_count=0, error=str(e))
 
     def BlockLocations(self, request, context):
-        path = request.path
-        try:
-            output = subprocess.check_output(
-                ["hdfs", "fsck", path, "-files", "-blocks", "-locations"], text=True
-            )
-            blocks = {}
-            for line in output.splitlines():
-                if "BP-" in line:
-                    node_id = line.split()[-1].strip()
-                    blocks[node_id] = blocks.get(node_id, 0) + 1
-            return lender_pb2.BlockLocationsResp(block_entries=blocks, error="")
-        except Exception as e:
-            return lender_pb2.BlockLocationsResp(block_entries={}, error=str(e))
+        raw_path = request.path or os.environ.get("PARQUET_PATH", "/hdma-wi-2021.parquet")
+        if raw_path.startswith("hdfs://"):
+        raw_path = "/" + "/".join(raw_path.split("/")[3:])
 
+        try:
+            file_info = self.hdfs.get_file_info(raw_path)
+            if file_info.type != fs.FileType.File:
+                return lender_pb2.BlockLocationsResp(
+                    block_entries={}, error=f"{raw_path} is not a file"
+                )
+
+            blocks = self.hdfs.get_file_block_locations(raw_path)
+
+            node_counts = defaultdict(int)
+            for block in blocks:
+                for host in block.hosts:
+                    node_counts[host] += 1
+
+            return lender_pb2 .BlockLocationsResp(
+                block_entries=dict(node_counts), error=""
+            )
+
+        except FileNotFoundError:
+            return lender_pb2.BlockLocationsResp(
+                block_entries={}, error=f"File {raw_path} not found on HDFS"
+            )
+        except Exception as e:
+            return lender_pb2.BlockLocationsResp(
+                block_entries={}, error=str(e)
+            )
     def CalcAvgLoan(self, request, context):
         county_code = float(request.county_code)
         big_file = os.environ.get("PARQUET_PATH", "/hdma-wi-2021.parquet")
@@ -140,3 +157,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
