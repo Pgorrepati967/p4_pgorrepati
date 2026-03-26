@@ -71,7 +71,7 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
             block_locations = self.hdfs.get_file_block_locations(request.path)
             blocks = {}
             for block in block_locations:
-                for host in block['hosts']:
+                for host in block['names']:
                     host_str = host.decode('utf-8')
                     blocks[host_str] = blocks.get(host_str, 0) + 1
 
@@ -105,16 +105,9 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
             )
             df = table.to_pandas()
 
-            tmp_local = f"/tmp/{int(county_code)}.parquet"
-            pq.write_table(table, tmp_local, compression="snappy")
-
-            subprocess.check_call([
-                "hdfs", "dfs",
-                "-D", "dfs.replication=1",
-                "-put", "-f",
-                tmp_local,
-                county_file
-            ])
+            hdfs_rep1 = fs.HadoopFileSystem("nn", port=9000, replication=1)
+            with hdfs_rep1.open_output_stream(county_file) as stream:
+                pq.write_table(table, stream, compression="snappy")
 
         avg_loan = int(df["loan_amount"].mean())
         return lender_pb2.CalcAvgLoanResp(avg_loan=avg_loan, source=source, error="")
