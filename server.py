@@ -4,13 +4,14 @@ import lender_pb2, lender_pb2_grpc
 import os
 import subprocess
 import time
+import requests
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pyarrow.fs as fs
-import pyarrow.hdfs
 from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError
+from collections import Counter
 
 class LenderServicer(lender_pb2_grpc.LenderServicer):
     def __init__(self):
@@ -69,16 +70,25 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
             return lender_pb2.DbToHdfsResp(row_count=0, error=str(e))
 
     def BlockLocations(self, request, context):
-        try:
-            hdfs_legacy = pyarrow.hdfs.connect(host="nn", port=9000)
-            block_locations = hdfs_legacy.get_file_block_locations(request.path)
-            blocks = {}
-            for block in block_locations:
-                for host in block['names']:
-                    host_str = host.decode('utf-8')
-                    blocks[host_str] = blocks.get(host_str, 0) + 1
+        """
+        Returns number of blocks per DataNode for a given file path.
+        """
+        file_path = request.path
+        namenode = "nn"  # your namenode hostname in docker-compose
+        port = 9870      # default WebHDFS port
 
-            return lender_pb2.BlockLocationsResp(block_entries=blocks, error="")
+        try:
+            url = f"http://{namenode}:{port}/webhdfs/v1{file_path}?op=GETFILEBLOCKLOCATIONS"
+            resp = requests.get(url)
+            resp.raise_for_status()
+
+            all_datanodes = []
+            for blk in resp.json()["BlockLocations"]["BlockLocation"]:
+                all_datanodes.extend(blk["names"])
+
+            block_count = dict(Counter(all_datanodes))
+
+            return lender_pb2.BlockLocationsResp(block_entries=block_count, error="")
         except Exception as e:
             return lender_pb2.BlockLocationsResp(block_entries={}, error=str(e))
 

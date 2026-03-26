@@ -849,3 +849,21 @@
 
 # 2026-03-26 11:31:00.961265
 +n
+
+# 2026-03-26 14:28:21.824261
++fix blockLocations function in server.py Read any files you might need. I got this error on the latest run: "Q8": {
++      "Q": 8,
++      "error": {
++        "message": "Script failed to docker exec python3 client.py BlockLocations -f /hdma-wi-2021.parquet due to: b\"error: 'pyarrow._hdfs.HadoopFileSystem' object has no attribute 'get_file_block_locations'\\n\", return code: 1"
++      },
++      "score": {
++        "earned": 0,
++        "total": 10
++      },
++      "status": "FAILED",
++      "test_name": "test_BlockLocations"
++    },
++
+
+# 2026-03-26 14:28:24.092994
++y
