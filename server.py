@@ -23,7 +23,7 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
         self.hdfs = None
         for _ in range(10):
             try:
-                self.hdfs = fs.HadoopFileSystem(hdfs_host, port=hdfs_port)
+                self.hdfs = fs.HadoopFileSystem(hdfs_host, port=hdfs_port,replication=2,default_block_size=1024 * 1024)
                 break
             except OSError as e:
                 print(f"HDFS connection failed: {e}, retrying...")
@@ -65,7 +65,6 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
             table = pa.Table.from_pandas(df)
 
             parquet_path = os.environ.get("PARQUET_PATH", "/hdma-wi-2021.parquet")
-            block_size = int(os.environ.get("BLOCK_SIZE", 1024*1024))
 
             parent_dir = os.path.dirname(parquet_path)
             if parent_dir:
@@ -81,7 +80,6 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
                 parquet_path,
                 filesystem=self.hdfs,
                 compression="snappy",
-                row_group_size=block_size
             )
             return lender_pb2.DbToHdfsResp(row_count=df.shape[0], error="")
         except Exception as e:
