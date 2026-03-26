@@ -92,17 +92,15 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
             raw_path = "/" + "/".join(raw_path.split("/")[3:])
 
         try:
-            output = subprocess.check_output(
-                ["hdfs", "fsck", raw_path, "-files", "-blocks", "-locations"],
-                text=True
-            )
+            info = self.hdfs.get_file_info(raw_path)
+            if info.type != fs.FileType.File:
+                return lender_pb2.BlockLocationsResp(block_entries={}, error=f"Path {raw_path} is not a file.")
 
+            block_locations = self.hdfs.get_file_block_locations(raw_path)
             node_counts = defaultdict(int)
-            for line in output.splitlines():
-                if "DatanodeInfoWithStorage[" in line:
-                    node_id = line.split(":")[0].split("[")[-1]
-                    node_counts[node_id] += 1
-
+            for block in block_locations:
+                for host in block.hosts:
+                    node_counts[host] += 1
             return lender_pb2.BlockLocationsResp(block_entries=dict(node_counts), error="")
 
         except FileNotFoundError:
