@@ -55,9 +55,11 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
         try:
             engine = self._connect_mysql()
             query = """
-            SELECT loans.*
-            FROM loans
-            WHERE loans.loan_type='Conventional'
+            SELECT l.*
+            FROM loans l
+            INNER JOIN loan_types t
+                ON l.loan_type_id = t.id
+            WHERE t.loan_type_name = 'conventional';
             """
             df = pd.read_sql(query, engine)
             table = pa.Table.from_pandas(df)
@@ -78,7 +80,6 @@ class LenderServicer(lender_pb2_grpc.LenderServicer):
                 table,
                 parquet_path,
                 filesystem=self.hdfs,
-                version="2.0",
                 compression="snappy",
                 row_group_size=block_size
             )
